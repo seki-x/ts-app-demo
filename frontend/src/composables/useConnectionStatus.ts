@@ -12,9 +12,17 @@ export function useConnectionStatus() {
   const errorMessage = ref<string>("");
 
   let intervalId: number | null = null;
+  let retryTimeoutId: number | null = null;
+  let retryAttempts = 0;
+  const maxRetries = 5;
 
-  const checkConnection = async (): Promise<void> => {
-    console.log("🔍 Starting connection check...");
+  const checkConnection = async (isRetry: boolean = false): Promise<void> => {
+    if (isRetry) {
+      console.log(`🔄 Retry attempt ${retryAttempts}/${maxRetries}`);
+    } else {
+      console.log("🔍 Starting connection check...");
+      retryAttempts = 0;
+    }
 
     try {
       status.value = "checking";
@@ -35,15 +43,16 @@ export function useConnectionStatus() {
       if (response.ok) {
         const data = await response.json();
 
-        // ✅ Add explicit status update with logging
         console.log("✅ API Health Check Success:", data);
-        console.log("🔄 Updating status from", status.value, "to connected");
-
         status.value = "connected";
         lastChecked.value = new Date();
+        retryAttempts = 0; // Reset retry counter on success
 
-        console.log("📊 New status:", status.value);
-        console.log("⏰ Last checked:", lastChecked.value);
+        // Clear any pending retries
+        if (retryTimeoutId) {
+          clearTimeout(retryTimeoutId);
+          retryTimeoutId = null;
+        }
       } else {
         console.log(
           "❌ API returned error status:",
@@ -54,18 +63,44 @@ export function useConnectionStatus() {
         errorMessage.value = `HTTP ${response.status}: ${response.statusText}`;
       }
     } catch (error: any) {
-      console.log("💥 API Health Check Exception:", error);
+      console.log("💥 API Health Check Exception:", error.message);
 
-      status.value = "disconnected";
       lastChecked.value = new Date();
 
       if (error.name === "AbortError") {
         errorMessage.value = "Connection timeout";
-      } else if (error.message.includes("fetch")) {
+      } else if (
+        error.message.includes("fetch") ||
+        error.message.includes("CONNECTION_REFUSED")
+      ) {
         errorMessage.value = "Unable to reach server";
+
+        // 🚀 Smart retry logic for initial connection failures
+        if (retryAttempts < maxRetries) {
+          retryAttempts++;
+          const retryDelay = Math.min(
+            1000 * Math.pow(2, retryAttempts - 1),
+            10000
+          ); // Exponential backoff, max 10s
+
+          console.log(
+            `🔄 Will retry in ${retryDelay}ms (attempt ${retryAttempts}/${maxRetries})`
+          );
+          status.value = "checking"; // Keep checking status during retries
+          errorMessage.value = `Retrying... (${retryAttempts}/${maxRetries})`;
+
+          retryTimeoutId = setTimeout(() => {
+            checkConnection(true);
+          }, retryDelay);
+
+          return; // Don't set status to disconnected yet
+        }
       } else {
         errorMessage.value = error.message;
       }
+
+      // Only set disconnected if all retries failed
+      status.value = "disconnected";
     }
 
     console.log("🏁 Connection check finished. Final status:", status.value);
@@ -73,16 +108,40 @@ export function useConnectionStatus() {
 
   const startMonitoring = (): void => {
     console.log("🚀 Starting connection monitoring...");
+
+    // ✨ Start with immediate check (with retries)
     checkConnection();
-    intervalId = setInterval(checkConnection, 30000);
+
+    // Then check every 30 seconds
+    intervalId = setInterval(() => checkConnection(), 30000);
   };
 
   const stopMonitoring = (): void => {
     console.log("🛑 Stopping connection monitoring...");
+
     if (intervalId !== null) {
       clearInterval(intervalId);
       intervalId = null;
     }
+
+    if (retryTimeoutId !== null) {
+      clearTimeout(retryTimeoutId);
+      retryTimeoutId = null;
+    }
+
+    retryAttempts = 0;
+  };
+
+  const forceCheck = (): void => {
+    console.log("👆 Manual connection check triggered");
+
+    // Clear any pending retries
+    if (retryTimeoutId) {
+      clearTimeout(retryTimeoutId);
+      retryTimeoutId = null;
+    }
+
+    checkConnection();
   };
 
   const getStatusColor = (): string => {
@@ -107,7 +166,9 @@ export function useConnectionStatus() {
       case "disconnected":
         return "Disconnected";
       case "checking":
-        return "Checking...";
+        return retryAttempts > 0
+          ? `Retrying... (${retryAttempts}/${maxRetries})`
+          : "Checking...";
       case "error":
         return "Error";
       default:
@@ -122,7 +183,7 @@ export function useConnectionStatus() {
       case "disconnected":
         return "🔴";
       case "checking":
-        return "🟡";
+        return retryAttempts > 0 ? "🔄" : "🟡";
       case "error":
         return "🟠";
       default:
@@ -142,7 +203,7 @@ export function useConnectionStatus() {
     status,
     lastChecked,
     errorMessage,
-    checkConnection,
+    checkConnection: forceCheck, // Expose manual check
     startMonitoring,
     stopMonitoring,
     getStatusColor,
