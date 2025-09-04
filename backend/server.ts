@@ -23,6 +23,16 @@ if (!process.env.ANTHROPIC_MODEL) {
 
 const MODEL_ID = process.env.ANTHROPIC_MODEL;
 
+// Health check endpoint
+app.get("/api/health", (req: Request, res: Response) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    model: MODEL_ID,
+    anthropicKeySet: !!process.env.ANTHROPIC_API_KEY,
+  });
+});
+
 // Your existing endpoint
 app.get("/api/hello", (req: Request, res: Response) => {
   res.json({ message: "Hello from Express + TypeScript!" });
@@ -69,5 +79,5 @@ app.listen(PORT, () => {
     }`
   );
   console.log(`🤖 Model: ${MODEL_ID}`);
-  console.log(`📡 Using Express-compatible streaming`);
+  console.log(`🩺 Health check: http://localhost:${PORT}/api/health`);
 });

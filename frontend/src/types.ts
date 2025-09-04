@@ -8,3 +8,9 @@ export interface UIMessage {
   role: "user" | "assistant";
   parts: TextPart[];
 }
+
+export type ConnectionStatus =
+  | "connected"
+  | "disconnected"
+  | "checking"
+  | "error";
