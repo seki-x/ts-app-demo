@@ -6,7 +6,8 @@
   },
   "dependencies": {
     "vue": "^3.3.0",
-    "ai": "^5.0.0"
+    "ai": "^5.0.0",
+    "@ai-sdk/vue": "^2.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.0.0",

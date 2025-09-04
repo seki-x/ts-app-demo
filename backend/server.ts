@@ -49,6 +49,7 @@ app.post("/api/chat", async (req: Request, res: Response) => {
 
     console.log(`🤖 Using model: ${MODEL_ID}`);
     console.log(`💬 Processing ${messages.length} messages`);
+    console.log(`📋 Messages received:`, JSON.stringify(messages, null, 2));
 
     const result = await streamText({
       model: anthropic(MODEL_ID),
@@ -57,15 +58,32 @@ app.post("/api/chat", async (req: Request, res: Response) => {
       temperature: 0.7,
     });
 
-    // ✅ For Express: Use the Express-compatible method
-    result.pipeUIMessageStreamToResponse(res);
+    console.log(`📡 About to pipe UI message stream to response`);
+
+    // Check if the method exists
+    if (typeof result.pipeUIMessageStreamToResponse === "function") {
+      console.log("✅ pipeUIMessageStreamToResponse method found");
+      result.pipeUIMessageStreamToResponse(res);
+    } else {
+      console.error("❌ pipeUIMessageStreamToResponse method not found!");
+      console.log("Available methods:", Object.getOwnPropertyNames(result));
+
+      // Fallback to simple streaming
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      for await (const chunk of result.textStream) {
+        res.write(chunk);
+      }
+      res.end();
+    }
   } catch (error: any) {
     console.error("❌ Chat error:", error);
-    res.status(500).json({
-      error: "Failed to process chat request",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: "Failed to process chat request",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
   }
 });
 
