@@ -2,11 +2,11 @@
   "name": "frontend",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
-    "type-check": "vue-tsc --noEmit"
+    "build": "vue-tsc && vite build"
   },
   "dependencies": {
-    "vue": "^3.3.0"
+    "vue": "^3.3.0",
+    "ai": "^5.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.0.0",
