@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "start",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "runOptions": {
+        "instanceLimit": 1
+      },
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "(Local|local):.*(http://localhost:5173|https://localhost:5173)"
+        }
+      }
+    },
+    {
+      "label": "stop",
+      "type": "shell",
+      "command": "lsof",
+      "args": ["-ti:5173", "|", "xargs", "kill", "-9"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "windows": {
+        "command": "for",
+        "args": [
+          "/f",
+          "\"tokens=5\"",
+          "%a",
+          "in",
+          "('netstat -aon ^| find \":5173\"')",
+          "do",
+          "taskkill",
+          "/f",
+          "/pid",
+          "%a"
+        ]
+      }
+    }
+  ]
+}
