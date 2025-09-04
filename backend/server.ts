@@ -16,8 +16,12 @@ if (!process.env.ANTHROPIC_API_KEY) {
   console.error("❌ ANTHROPIC_API_KEY is required in .env file");
   process.exit(1);
 }
+if (!process.env.ANTHROPIC_MODEL) {
+  console.error("❌ ANTHROPIC_MODEL is required in .env file");
+  process.exit(1);
+}
 
-const MODEL_ID = process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-20241022";
+const MODEL_ID = process.env.ANTHROPIC_MODEL;
 
 // Your existing endpoint
 app.get("/api/hello", (req: Request, res: Response) => {
