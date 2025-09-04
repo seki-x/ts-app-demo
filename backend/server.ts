@@ -28,7 +28,7 @@ app.get("/api/hello", (req: Request, res: Response) => {
   res.json({ message: "Hello from Express + TypeScript!" });
 });
 
-// New AI chat endpoint with v5 syntax
+// Fixed AI chat endpoint for Express
 app.post("/api/chat", async (req: Request, res: Response) => {
   try {
     const { messages } = req.body;
@@ -42,22 +42,13 @@ app.post("/api/chat", async (req: Request, res: Response) => {
 
     const result = await streamText({
       model: anthropic(MODEL_ID),
-      messages: convertToModelMessages(messages), // ✅ v5 syntax
-      maxOutputTokens: 1000, // ✅ v5 syntax (was maxTokens)
+      messages: convertToModelMessages(messages),
+      maxOutputTokens: 1000,
       temperature: 0.7,
     });
 
-    // Set headers for streaming
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-
-    // Stream the response
-    for await (const chunk of result.textStream) {
-      res.write(chunk);
-    }
-
-    res.end();
+    // ✅ For Express: Use the Express-compatible method
+    result.pipeUIMessageStreamToResponse(res);
   } catch (error: any) {
     console.error("❌ Chat error:", error);
     res.status(500).json({
@@ -78,5 +69,5 @@ app.listen(PORT, () => {
     }`
   );
   console.log(`🤖 Model: ${MODEL_ID}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`📡 Using Express-compatible streaming`);
 });
