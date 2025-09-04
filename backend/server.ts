@@ -17,7 +17,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 
-const MODEL_ID = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
+const MODEL_ID = process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-20241022";
 
 // Your existing endpoint
 app.get("/api/hello", (req: Request, res: Response) => {
