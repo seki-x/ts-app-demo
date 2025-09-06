@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { streamText, convertToModelMessages } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { allTools, toolInfo } from "./tools"; // Import tools
 
 // Load environment variables
 dotenv.config();
@@ -30,15 +31,23 @@ app.get("/api/health", (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     model: MODEL_ID,
     anthropicKeySet: !!process.env.ANTHROPIC_API_KEY,
+    toolsAvailable: Object.keys(allTools).length,
   });
 });
 
-// Your existing endpoint
+// Tools info endpoint
+app.get("/api/tools", (req: Request, res: Response) => {
+  res.json({
+    tools: toolInfo,
+    count: toolInfo.length,
+  });
+});
+
 app.get("/api/hello", (req: Request, res: Response) => {
   res.json({ message: "Hello from Express + TypeScript!" });
 });
 
-// Fixed AI chat endpoint for Express
+// AI chat endpoint with tools
 app.post("/api/chat", async (req: Request, res: Response) => {
   try {
     const { messages } = req.body;
@@ -49,32 +58,19 @@ app.post("/api/chat", async (req: Request, res: Response) => {
 
     console.log(`🤖 Using model: ${MODEL_ID}`);
     console.log(`💬 Processing ${messages.length} messages`);
-    console.log(`📋 Messages received:`, JSON.stringify(messages, null, 2));
 
     const result = await streamText({
       model: anthropic(MODEL_ID),
       messages: convertToModelMessages(messages),
       maxOutputTokens: 1000,
       temperature: 0.7,
+      tools: allTools, // Use imported tools
     });
 
-    console.log(`📡 About to pipe UI message stream to response`);
-
-    // Check if the method exists
-    if (typeof result.pipeUIMessageStreamToResponse === "function") {
-      console.log("✅ pipeUIMessageStreamToResponse method found");
-      result.pipeUIMessageStreamToResponse(res);
-    } else {
-      console.error("❌ pipeUIMessageStreamToResponse method not found!");
-      console.log("Available methods:", Object.getOwnPropertyNames(result));
-
-      // Fallback to simple streaming
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      for await (const chunk of result.textStream) {
-        res.write(chunk);
-      }
-      res.end();
-    }
+    console.log(
+      `📡 Streaming response with ${Object.keys(allTools).length} tools enabled`
+    );
+    result.pipeUIMessageStreamToResponse(res);
   } catch (error: any) {
     console.error("❌ Chat error:", error);
     if (!res.headersSent) {
@@ -97,5 +93,7 @@ app.listen(PORT, () => {
     }`
   );
   console.log(`🤖 Model: ${MODEL_ID}`);
+  console.log(`🛠️ Tools enabled: ${Object.keys(allTools).join(", ")}`);
   console.log(`🩺 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🔧 Tools info: http://localhost:${PORT}/api/tools`);
 });

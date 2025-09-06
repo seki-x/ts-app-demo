@@ -5,7 +5,7 @@
       "name": "🔴 Debug Backend",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/backend/server.ts",
+      "program": "${workspaceFolder}/backend/src/server.ts",
       "runtimeExecutable": "tsx",
       "cwd": "${workspaceFolder}/backend",
       "env": {
