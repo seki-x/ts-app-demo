@@ -74,12 +74,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useOriginalDemo } from './composables/useOriginalDemo'
-import { useOfficialAiChat } from './composables/useOfficialAiChat'
+import { useAiChat } from './composables/useAiChat'
 import { useConnectionStatus } from './composables/useConnectionStatus'
 
 // Use composables
 const { message, fetchMessage } = useOriginalDemo()
-const { messages, input, isLoading, handleSubmit, status: chatStatus } = useOfficialAiChat()
+const { messages, input, isLoading, handleSubmit, status: chatStatus } = useAiChat()
 const {
     status: connectionStatus,
     lastChecked,
