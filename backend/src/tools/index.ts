@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { createNotionMCPClient, getNotionToolsInfo } from "../mcp/notion-client.js";
 
 export const weatherTool = tool({
   description: "Get current weather for a location",
@@ -90,15 +91,17 @@ export const calculatorTool = tool({
   },
 });
 
-// Export all tools as a collection
-export const allTools = {
-  getWeather: weatherTool,
-  getCurrentTime: timeTool,
-  calculate: calculatorTool,
-};
+// Export local tools only
+export function getLocalTools() {
+  return {
+    getWeather: weatherTool,
+    getCurrentTime: timeTool,
+    calculate: calculatorTool,
+  };
+}
 
-// Export tool metadata for documentation
-export const toolInfo = [
+// Export tool metadata for documentation (local tools only)
+const localToolInfo = [
   {
     name: "getWeather",
     description: "Get weather information for any location",
@@ -115,3 +118,21 @@ export const toolInfo = [
     example: "Calculate 15 * 24 + 100",
   },
 ];
+
+// Get all tools info including MCP tools
+export async function getAllToolsInfo() {
+  try {
+    if (process.env.NOTION_API_KEY) {
+      const notionMCPClient = await createNotionMCPClient();
+      if (notionMCPClient) {
+        const notionToolsInfo = await getNotionToolsInfo(notionMCPClient);
+        await notionMCPClient.close();
+        return [...localToolInfo, ...notionToolsInfo];
+      }
+    }
+    return localToolInfo;
+  } catch (error) {
+    console.error('❌ Failed to get Notion tools info:', error);
+    return localToolInfo;
+  }
+}

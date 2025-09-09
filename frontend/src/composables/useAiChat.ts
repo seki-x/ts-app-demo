@@ -13,12 +13,31 @@ export function useAiChat() {
         "Content-Type": "application/json",
       },
     }),
+    onFinish: (message) => {
+      console.log("🎯 Frontend: Chat finished", message);
+    },
+    onError: (error) => {
+      console.error("❌ Frontend: Chat error", error);
+    },
   });
 
   // Watch for message changes and sync to reactive ref
   watch(
     () => chat.messages,
     (newMessages) => {
+      console.log("📝 Frontend: Messages updated", newMessages);
+      console.log("📊 Frontend: Message count:", newMessages.length);
+      
+      // Log each message in detail
+      newMessages.forEach((msg, index) => {
+        console.log(`📨 Frontend: Message ${index}:`, {
+          id: msg.id,
+          role: msg.role,
+          parts: msg.parts,
+          text: msg.text || msg.content
+        });
+      });
+      
       messages.value = [...newMessages];
     },
     { deep: true, immediate: true }
@@ -31,12 +50,26 @@ export function useAiChat() {
     const messageText = input.value;
     input.value = "";
 
+    console.log("🚀 Frontend: Sending message:", messageText);
+
     try {
-      await chat.sendMessage({ text: messageText });
+      console.log("📡 Frontend: Chat status before send:", chat.status);
+      const result = await chat.sendMessage({ text: messageText });
+      console.log("✅ Frontend: SendMessage result:", result);
+      console.log("📡 Frontend: Chat status after send:", chat.status);
     } catch (error) {
-      console.error("Error in sendMessage:", error);
+      console.error("❌ Frontend: Error in sendMessage:", error);
     }
   };
+
+  // Watch for status changes
+  watch(
+    () => chat.status,
+    (newStatus, oldStatus) => {
+      console.log(`📊 Frontend: Status changed from "${oldStatus}" to "${newStatus}"`);
+    },
+    { immediate: true }
+  );
 
   const isLoading = computed(() => {
     return chat.status === "submitted" || chat.status === "streaming";

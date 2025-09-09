@@ -59,6 +59,10 @@
                         class="example-btn" :disabled="isLoading">
                         🌍 Weather & Time in London
                     </button>
+                    <button @click="sendExamplePrompt('Get my Notion user information')"
+                        class="example-btn" :disabled="isLoading">
+                        👤 Get Notion User Info
+                    </button>
                 </div>
             </div>
 
@@ -71,37 +75,37 @@
                         <!-- Text parts -->
                         <span v-if="part.type === 'text' && part.text">{{ part.text }}</span>
 
-                        <!-- Tool call parts -->
-                        <div v-else-if="part.type && part.type.startsWith('tool-')" class="tool-call">
+                        <!-- Tool call parts - handle both local tools (tool-*) and MCP tools (dynamic-tool) -->
+                        <div v-else-if="isToolPart(part)" class="tool-call">
                             <div class="tool-header">
                                 <span class="tool-name">
-                                    {{ getToolIcon(part.type) }} <strong>{{ getToolName(part.type) }}</strong>
+                                    {{ getToolIconForPart(part) }} <strong>{{ getToolNameForPart(part) }}</strong>
                                 </span>
-                                <span class="tool-state" :class="`state-${part.state || 'completed'}`">
-                                    {{ part.state || 'completed' }}
+                                <span class="tool-state" :class="`state-${getToolState(part)}`">
+                                    {{ getToolState(part) }}
                                 </span>
                             </div>
 
                             <!-- Tool input -->
-                            <div v-if="part.input" class="tool-section">
+                            <div v-if="getToolInput(part)" class="tool-section">
                                 <strong>Input:</strong>
                                 <div class="tool-content">
-                                    <pre>{{ JSON.stringify(part.input, null, 2) }}</pre>
+                                    <pre>{{ JSON.stringify(getToolInput(part), null, 2) }}</pre>
                                 </div>
                             </div>
 
                             <!-- Tool output -->
-                            <div v-if="part.output" class="tool-section">
+                            <div v-if="getToolOutput(part)" class="tool-section">
                                 <strong>Output:</strong>
                                 <div class="tool-content">
-                                    <pre>{{ JSON.stringify(part.output, null, 2) }}</pre>
+                                    <pre>{{ formatToolOutput(part) }}</pre>
                                 </div>
                             </div>
 
                             <!-- Tool error -->
-                            <div v-if="part.error" class="tool-error">
+                            <div v-if="getToolError(part)" class="tool-error">
                                 <strong>Error:</strong>
-                                <span>{{ part.error }}</span>
+                                <span>{{ getToolError(part) }}</span>
                             </div>
                         </div>
                     </div>
@@ -134,6 +138,7 @@ import { computed } from 'vue'
 import { useOriginalDemo } from './composables/useOriginalDemo'
 import { useAiChat } from './composables/useAiChat'
 import { useConnectionStatus } from './composables/useConnectionStatus'
+import { useToolDisplay } from './composables/useToolDisplay'
 
 // Use composables
 const { message, fetchMessage } = useOriginalDemo()
@@ -147,6 +152,16 @@ const {
     getStatusText,
     getStatusIcon
 } = useConnectionStatus()
+const {
+    isToolPart,
+    getToolNameForPart,
+    getToolIconForPart,
+    getToolState,
+    getToolInput,
+    getToolOutput,
+    getToolError,
+    formatToolOutput
+} = useToolDisplay()
 
 // Helper to send example prompts
 const sendExamplePrompt = (prompt: string) => {
@@ -154,27 +169,7 @@ const sendExamplePrompt = (prompt: string) => {
     chat.sendMessage({ text: prompt })
 }
 
-// Helper to extract tool name from part type
-const getToolName = (partType: string): string => {
-    const toolName = partType.replace('tool-', '')
-    const nameMap: Record<string, string> = {
-        'getWeather': 'Weather Lookup',
-        'getCurrentTime': 'Time Check',
-        'calculate': 'Calculator'
-    }
-    return nameMap[toolName] || toolName.replace(/([A-Z])/g, ' $1').trim()
-}
-
-// Helper to get tool icon
-const getToolIcon = (partType: string): string => {
-    const toolName = partType.replace('tool-', '')
-    const iconMap: Record<string, string> = {
-        'getWeather': '🌤️',
-        'getCurrentTime': '🕐',
-        'calculate': '🔢'
-    }
-    return iconMap[toolName] || '🛠️'
-}
+// All tool display functions are now in useToolDisplay composable
 
 const formatLastChecked = computed(() => {
     if (!lastChecked.value) return ''
