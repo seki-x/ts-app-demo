@@ -1,5 +1,11 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText, UIMessage, convertToModelMessages, tool } from "ai";
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  tool,
+  stepCountIs,
+} from "ai";
 import { config } from "dotenv";
 import { z } from "zod";
 
@@ -16,6 +22,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: anthropic(modelId),
     messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     tools: {
       weather: tool({
         description: "Get the weather in a location (fahrenheit)",
